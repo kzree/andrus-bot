@@ -8,7 +8,6 @@ use serenity::framework::standard::macros::{command, group};
 use serenity::framework::standard::{StandardFramework, CommandResult};
 
 #[group]
-#[commands(ping)]
 #[commands(play)]
 struct General;
 
@@ -37,13 +36,6 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
-}
-
-#[command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Pong!").await?;
-
-    Ok(())
 }
 
 #[command]
