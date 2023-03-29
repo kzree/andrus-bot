@@ -8,6 +8,9 @@ edition = "2021"
 [dependencies]
 dotenv = "0.15.0"
 regex = "1.7.3"
-serenity = "0.11"
 songbird = "0.3.1"
 tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
+
+[dependencies.serenity]
+git = "https://github.com/serenity-rs/serenity.git"
+features = ["client", "standard_framework", "voice"]
