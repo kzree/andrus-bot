@@ -2,6 +2,7 @@ use std::env;
 
 use dotenv::dotenv;
 use regex::Regex;
+use songbird::SerenityInit;
 use serenity::async_trait;
 use serenity::framework::standard::macros::{command, group};
 use serenity::framework::standard::{CommandResult, StandardFramework};
@@ -9,7 +10,7 @@ use serenity::model::channel::Message;
 use serenity::prelude::*;
 
 #[group]
-#[commands(play)]
+#[commands(play,leave,join)]
 struct General;
 
 struct Handler;
@@ -33,12 +34,40 @@ async fn main() {
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
         .framework(framework)
+        .register_songbird()
         .await
         .expect("Error creating client");
 
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
+}
+
+#[command]
+#[only_in(guilds)]
+async fn join(ctx: &Context, msg: &Message) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let guild_id = guild.id;
+
+    let channel_id = guild
+        .voice_states.get(&msg.author.id)
+        .and_then(|voice_state| voice_state.channel_id);
+
+    let connect_to = match channel_id {
+        Some(channel) => channel,
+        None => {
+            msg.reply(ctx, "Not in a voice channel").await?;
+
+            return Ok(());
+        }
+    };
+
+    let manager = songbird::get(ctx).await
+        .expect("Songbird Voice client placed in at initialisation.").clone();
+
+    let _handler = manager.join(guild_id, connect_to).await;
+
+    Ok(())
 }
 
 #[command]
@@ -86,7 +115,10 @@ async fn play(ctx: &Context, msg: &Message) -> CommandResult {
 
     let manager = songbird::get(ctx).await.expect("Songbird Voice client placed in at initialisation.").clone();
 
-    if let Some(handler_lock) = manager.get(msg.guild(&ctx.cache).unwrap().id) {
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let guild_id = guild.id;
+
+    if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
 
         let source = match songbird::ytdl(&arguments).await {
