@@ -1,11 +1,12 @@
 use std::env;
 
 use dotenv::dotenv;
+use regex::Regex;
 use serenity::async_trait;
-use serenity::prelude::*;
-use serenity::model::channel::Message;
 use serenity::framework::standard::macros::{command, group};
-use serenity::framework::standard::{StandardFramework, CommandResult};
+use serenity::framework::standard::{CommandResult, StandardFramework};
+use serenity::model::channel::Message;
+use serenity::prelude::*;
 
 #[group]
 #[commands(play)]
@@ -15,6 +16,9 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {}
+
+static YOUTUBE_REGEX: &str =
+    r"http(?:s?)://(?:www\.)?youtu(?:be\.com/watch\?v=|\.be/)([\w\-_]*)(&(amp;)?‌​[\w\?‌​=]*)?";
 
 #[tokio::main]
 async fn main() {
@@ -32,7 +36,6 @@ async fn main() {
         .await
         .expect("Error creating client");
 
-    // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
         println!("An error occurred while running the client: {:?}", why);
     }
@@ -40,12 +43,21 @@ async fn main() {
 
 #[command]
 async fn play(ctx: &Context, msg: &Message) -> CommandResult {
-    let msg_pieces: Vec<&str> = msg.content.split_whitespace().collect();
+    let arguments = msg
+        .content
+        .split_whitespace()
+        .skip(1)
+        .collect::<Vec<&str>>()
+        .join(" ");
 
-    if msg_pieces.len() > 1 {
-        msg.reply(ctx, format!("Your link: {}", msg_pieces[1])).await?;
-    } else {
-        msg.reply(ctx, "Missing link").await?;
+    if arguments == "" {
+        msg.reply(ctx, "**Missing link**").await?;
+    }
+
+    let yt_regex = Regex::new(YOUTUBE_REGEX).unwrap();
+
+    if !yt_regex.is_match(&arguments) {
+        msg.reply(ctx, "**Not a valid youtube link**").await?;
     }
 
     Ok(())
