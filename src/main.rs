@@ -87,7 +87,7 @@ async fn leave(ctx: &Context, msg: &Message) -> CommandResult {
 
         msg.channel_id.say(&ctx.http, "Left voice channel").await?;
     } else {
-        msg.reply(ctx, "Not in a voice channel").await?;
+        msg.channel_id.say(&ctx.http, "Not in a voice channel").await?;
     }
 
     Ok(())

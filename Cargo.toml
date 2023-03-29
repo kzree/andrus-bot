@@ -8,9 +8,12 @@ edition = "2021"
 [dependencies]
 dotenv = "0.15.0"
 regex = "1.7.3"
-songbird = "0.3.1"
 tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
 
 [dependencies.serenity]
 version = "0.11"
 features = ["client", "standard_framework", "voice"]
+
+[dependencies.songbird]
+version = "0.3.1"
+features = ["yt-dlp"]
