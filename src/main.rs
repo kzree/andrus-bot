@@ -42,6 +42,30 @@ async fn main() {
 }
 
 #[command]
+#[only_in(guilds)]
+async fn leave(ctx: &Context, msg: &Message) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let guild_id = guild.id;
+
+    let manager = songbird::get(ctx).await
+        .expect("Songbird Voice client placed in at initialisation.").clone();
+    let has_handler = manager.get(guild_id).is_some();
+
+    if has_handler {
+        if let Err(e) = manager.remove(guild_id).await {
+            msg.channel_id.say(&ctx.http, format!("Failed: {:?}", e)).await?;
+        }
+
+        msg.channel_id.say(&ctx.http, "Left voice channel").await?;
+    } else {
+        msg.reply(ctx, "Not in a voice channel").await?;
+    }
+
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
 async fn play(ctx: &Context, msg: &Message) -> CommandResult {
     let arguments = msg
         .content
@@ -51,13 +75,32 @@ async fn play(ctx: &Context, msg: &Message) -> CommandResult {
         .join(" ");
 
     if arguments == "" {
-        msg.reply(ctx, "**Missing link**").await?;
+        msg.channel_id.say(&ctx.http, "**Missing link**").await?;
     }
 
     let yt_regex = Regex::new(YOUTUBE_REGEX).unwrap();
 
     if !yt_regex.is_match(&arguments) {
-        msg.reply(ctx, "**Not a valid youtube link**").await?;
+        msg.channel_id.say(&ctx.http, "**Not a valid youtube link**").await?;
+    }
+
+    let manager = songbird::get(ctx).await.expect("Songbird Voice client placed in at initialisation.").clone();
+
+    if let Some(handler_lock) = manager.get(msg.guild(&ctx.cache).unwrap().id) {
+        let mut handler = handler_lock.lock().await;
+
+        let source = match songbird::ytdl(&arguments).await {
+            Ok(source) => source,
+            Err(why) => {
+                msg.channel_id.say(&ctx.http,&format!("Error: {}", why)).await?;
+                return Ok(());
+            },
+        };
+
+        handler.play_source(source);
+        msg.channel_id.say(&ctx.http, "Playing song").await?;
+    } else {
+        msg.channel_id.say(&ctx.http, "Not in a voice channel to play in").await?;
     }
 
     Ok(())
