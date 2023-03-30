@@ -10,7 +10,7 @@ use serenity::model::channel::Message;
 use serenity::prelude::*;
 
 #[group]
-#[commands(play,leave,join)]
+#[commands(play,leave,join,stop)]
 struct General;
 
 struct Handler;
@@ -136,5 +136,24 @@ async fn play(ctx: &Context, msg: &Message) -> CommandResult {
         msg.channel_id.say(&ctx.http, "**Not in a voice channel to play in**").await?;
     }
 
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).unwrap();
+    let guild_id = guild.id;
+
+    let manager = songbird::get(ctx).await
+        .expect("Songbird Voice client placed in at initialisation.").clone();
+
+    if let Some(handler_lock) = manager.get(guild_id) {
+        let mut handler = handler_lock.lock().await;
+
+        handler.stop();
+    } else {
+        msg.channel_id.say(&ctx.http, "**Not in a voice channel**").await?;
+    }
     Ok(())
 }
