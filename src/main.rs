@@ -56,7 +56,7 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
     let connect_to = match channel_id {
         Some(channel) => channel,
         None => {
-            msg.reply(ctx, "Not in a voice channel").await?;
+            msg.reply(ctx, "**Not in a voice channel**").await?;
 
             return Ok(());
         }
@@ -85,9 +85,8 @@ async fn leave(ctx: &Context, msg: &Message) -> CommandResult {
             msg.channel_id.say(&ctx.http, format!("Failed: {:?}", e)).await?;
         }
 
-        msg.channel_id.say(&ctx.http, "Left voice channel").await?;
     } else {
-        msg.channel_id.say(&ctx.http, "Not in a voice channel").await?;
+        msg.channel_id.say(&ctx.http, "**Not in a voice channel**").await?;
     }
 
     Ok(())
@@ -129,10 +128,12 @@ async fn play(ctx: &Context, msg: &Message) -> CommandResult {
             },
         };
 
+        let title = source.metadata.title.as_ref().unwrap();
+        msg.channel_id.say(&ctx.http, format!("**Now playing: _{}_**", title)).await?;
+
         handler.play_source(source);
-        msg.channel_id.say(&ctx.http, "Playing song").await?;
     } else {
-        msg.channel_id.say(&ctx.http, "Not in a voice channel to play in").await?;
+        msg.channel_id.say(&ctx.http, "**Not in a voice channel to play in**").await?;
     }
 
     Ok(())
